@@ -1,0 +1,861 @@
+// import React, { useState, useEffect } from 'react';
+// import { useSelector, useDispatch } from 'react-redux';
+// import { updateUserProfile } from '../../store/authSlice'; // We will add this action to authSlice
+// import { Container, Row, Col, Form, Button } from 'react-bootstrap'; // Import Bootstrap components
+// import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+
+// export const MyProfile = () => {
+//     const dispatch = useDispatch();
+//     const user = useSelector((state) => state.auth.user);
+//     const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+//     const isLoading = useSelector((state) => state.auth.isLoading);
+
+//     // Local state for form fields, initialized with Redux user data
+//     const [profileData, setProfileData] = useState({
+//         name: '',
+//         email: '',
+//         mobile: '',
+//         address: '',
+//         headline: '',
+//         bio: '',
+//         skills: '',
+//         linkedin: '',
+//         twitter: '',
+//     });
+
+//     // Update local state when Redux user data changes (e.g., on initial load or login)
+//     useEffect(() => {
+//         if (user) {
+//             setProfileData({
+//                 name: user.name || '',
+//                 email: user.email || '',
+//                 mobile: user.mobile || user.phone || '',
+//                 address: user.address || user.location || '',
+//                 headline: user.headline || '',
+//                 bio: user.bio || '',
+//                 skills: Array.isArray(user.skills) ? user.skills.join(', ') : (user.skills || ''),
+//                 linkedin: user.linkedin || '',
+//                 twitter: user.twitter || '',
+//             });
+//         }
+//     }, [user]);
+
+//     const handleChange = (e) => {
+//         const { name, value } = e.target;
+//         setProfileData(prevData => ({
+//             ...prevData,
+//             [name]: value
+//         }));
+//     };
+
+//     const handleSubmit = (e) => {
+//         e.preventDefault();
+
+//         // Convert skills string back to an array if needed for backend/Redux
+//         const skillsArray = profileData.skills.split(',').map(skill => skill.trim()).filter(skill => skill);
+
+//         const updatedUser = {
+//             ...user, // Keep existing user properties
+//             ...profileData, // Override with form data
+//             skills: skillsArray // Use the processed skills array
+//         };
+
+//         dispatch(updateUserProfile(updatedUser)); // Dispatch action to update Redux state
+
+//         // Show alert with updated data
+//         alert(`Profile Updated Successfully!\n\n` +
+//               `Name: ${updatedUser.name}\n` +
+//               `Email: ${updatedUser.email}\n` +
+//               `Mobile: ${updatedUser.mobile}\n` +
+//               `Address: ${updatedUser.address}\n` +
+//               `Headline: ${updatedUser.headline}\n` +
+//               `Bio: ${updatedUser.bio}\n` +
+//               `Skills: ${updatedUser.skills.join(', ')}\n` +
+//               `LinkedIn: ${updatedUser.linkedin}\n` +
+//               `Twitter: ${updatedUser.twitter}`);
+//     };
+
+//     if (isLoading) {
+//         return (
+//             <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
+//                 <p className="text-secondary">Loading profile...</p>
+//             </div>
+//         );
+//     }
+
+//     if (!isAuthenticated) {
+//         return (
+//             <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
+//                 <p className="text-danger">Please log in to view your profile.</p>
+//             </div>
+//         );
+//     }
+
+//     return (
+//         <div className="d-flex justify-content-center py-0 m-3" style={{ minHeight: '100vh', backgroundColor: '#f8f9fa', borderRadius: '15px' }}>
+//             <Container className="bg-white p-4 p-md-5 position-relative" style={{ maxWidth: '100%', borderRadius: '15px' }}>
+//                 {/* Cover Photo Section */}
+//                 <div className="position-relative w-100 bg-light rounded overflow-hidden border border-secondary d-flex align-items-center justify-content-center mb-4" style={{ height: '180px' }}>
+//                     <img src="/home/Left_side_icon.png" alt="Cover Photo" className="h-100 w-100" />
+//                     <Button variant="light" className="position-absolute top-0 end-0 m-3 rounded-2 shadow-sm" style={{ padding: '0.5rem' }}>
+//                         {/* Edit Icon (Pencil) */}
+//                         <FontAwesomeIcon icon={'pencil'} />
+//                     </Button>
+//                 </div>
+
+//                 {/* Profile Picture Section */}
+//                 <div className="position-absolute start-50 translate-middle rounded-4 border bg-light d-flex align-items-center justify-content-center shadow" style={{ width: '120px', height: '120px', top: 'calc(180px + 80px)' }}> {/* Adjusted top to overlap cover photo */}
+//                     <img src="/home/profile_icon.png" alt="Profile Photo" className="h-100 w-100 rounded-4" />
+//                     <Button variant="light" className="position-absolute bottom-0 end-0 m-1 rounded-2 shadow-sm" style={{ padding: '0.25rem' }}>
+//                         {/* Edit Icon (Pencil) */}
+//                         <FontAwesomeIcon icon={'pencil'} />
+//                     </Button>
+//                 </div>
+
+//                 <Form onSubmit={handleSubmit} className="mt-5 pt-5"> {/* Adjusted margin-top and padding-top to account for profile pic */}
+//                     {/* Name and Email */}
+//                     <Row className="mb-3">
+//                         <Col md={6}>
+//                             <Form.Group controlId="formName" className="mb-3">
+//                                 <Form.Label className="text-muted">Name :</Form.Label>
+//                                 <Form.Control
+//                                     type="text"
+//                                     name="name"
+//                                     value={profileData.name}
+//                                     onChange={handleChange}
+//                                     className="rounded shadow-sm"
+//                                     required
+//                                 />
+//                             </Form.Group>
+//                         </Col>
+//                         <Col md={6}>
+//                             <Form.Group controlId="formEmail" className="mb-3">
+//                                 <Form.Label className="text-muted">Email:</Form.Label>
+//                                 <Form.Control
+//                                     type="email"
+//                                     name="email"
+//                                     value={profileData.email}
+//                                     onChange={handleChange}
+//                                     className="rounded shadow-sm bg-light"
+//                                     readOnly
+//                                 />
+//                             </Form.Group>
+//                         </Col>
+//                     </Row>
+
+//                     {/* Mobile and Address */}
+//                     <Row className="mb-3">
+//                         <Col md={6}>
+//                             <Form.Group controlId="formMobile" className="mb-3">
+//                                 <Form.Label className="text-muted">Mobile:</Form.Label>
+//                                 <Form.Control
+//                                     type="tel"
+//                                     name="mobile"
+//                                     value={profileData.mobile}
+//                                     onChange={handleChange}
+//                                     className="rounded shadow-sm"
+//                                     placeholder="e.g., +1 123-456-7890"
+//                                 />
+//                             </Form.Group>
+//                         </Col>
+//                         <Col md={6}>
+//                             <Form.Group controlId="formAddress" className="mb-3">
+//                                 <Form.Label className="text-muted">Address:</Form.Label>
+//                                 <Form.Control
+//                                     type="text"
+//                                     name="address"
+//                                     value={profileData.address}
+//                                     onChange={handleChange}
+//                                     className="rounded shadow-sm"
+//                                     placeholder="e.g., 123 Main St, City, State"
+//                                 />
+//                             </Form.Group>
+//                         </Col>
+//                     </Row>
+
+//                     {/* Additional fields from previous version */}
+//                     <Row className="mb-3">
+//                         <Col>
+//                             <Form.Group controlId="formHeadline" className="mb-3">
+//                                 <Form.Label className="text-muted">Headline / Profession</Form.Label>
+//                                 <Form.Control
+//                                     type="text"
+//                                     name="headline"
+//                                     value={profileData.headline}
+//                                     onChange={handleChange}
+//                                     className="rounded shadow-sm"
+//                                     placeholder="e.g., Software Engineer, Marketing Specialist"
+//                                 />
+//                             </Form.Group>
+//                         </Col>
+//                     </Row>
+
+//                     <Row className="mb-3">
+//                         <Col>
+//                             <Form.Group controlId="formBio" className="mb-3">
+//                                 <Form.Label className="text-muted">About Me (Bio)</Form.Label>
+//                                 <Form.Control
+//                                     as="textarea"
+//                                     rows={4}
+//                                     name="bio"
+//                                     value={profileData.bio}
+//                                     onChange={handleChange}
+//                                     className="rounded shadow-sm"
+//                                     placeholder="Tell us a little about yourself..."
+//                                 />
+//                             </Form.Group>
+//                         </Col>
+//                     </Row>
+
+//                     <Row className="mb-3">
+//                         <Col>
+//                             <Form.Group controlId="formSkills" className="mb-3">
+//                                 <Form.Label className="text-muted">Skills (comma-separated)</Form.Label>
+//                                 <Form.Control
+//                                     type="text"
+//                                     name="skills"
+//                                     value={profileData.skills}
+//                                     onChange={handleChange}
+//                                     className="rounded shadow-sm"
+//                                     placeholder="e.g., React, Node.js, Marketing, Design"
+//                                 />
+//                             </Form.Group>
+//                         </Col>
+//                     </Row>
+
+//                     {/* Social Media Links */}
+//                     <Row className="mb-4">
+//                         <Col md={6}>
+//                             <Form.Group controlId="formLinkedIn" className="mb-3">
+//                                 <Form.Label className="text-muted">LinkedIn Profile URL</Form.Label>
+//                                 <Form.Control
+//                                     type="url"
+//                                     name="linkedin"
+//                                     value={profileData.linkedin}
+//                                     onChange={handleChange}
+//                                     className="rounded shadow-sm"
+//                                     placeholder="https://linkedin.com/in/yourprofile"
+//                                 />
+//                             </Form.Group>
+//                         </Col>
+//                         <Col md={6}>
+//                             <Form.Group controlId="formTwitter" className="mb-3">
+//                                 <Form.Label className="text-muted">Twitter Profile URL</Form.Label>
+//                                 <Form.Control
+//                                     type="url"
+//                                     name="twitter"
+//                                     value={profileData.twitter}
+//                                     onChange={handleChange}
+//                                     className="rounded shadow-sm"
+//                                     placeholder="https://twitter.com/yourhandle"
+//                                 />
+//                             </Form.Group>
+//                         </Col>
+//                     </Row>
+
+//                     {/* Submit Button */}
+//                     <div className="d-flex justify-content-end">
+//                         <Button
+//                             type="submit"
+//                             variant="primary" // Use Bootstrap primary button style
+//                             className="shadow-sm" // Add a subtle shadow
+//                         >
+//                             Save Profile
+//                         </Button>
+//                     </div>
+//                 </Form>
+//             </Container>
+//         </div>
+//     );
+// };
+
+// export default MyProfile;
+
+
+// Frontend/src/views/Profile/MyProfile.jsx
+// Frontend/src/views/Profile/MyProfile.jsx
+// Frontend/src/views/Profile/MyProfile.jsx
+// Frontend/src/views/Profile/MyProfile.jsx
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { updateUserProfile } from '../../store/authSlice';
+import { Container, Row, Col, Card, Form, Button, Image, Spinner, Alert } from 'react-bootstrap';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCamera, faPencilAlt, faTimes } from '@fortawesome/free-solid-svg-icons';
+
+import Swal from 'sweetalert2'; // Import SweetAlert2
+
+const defaultProfilePhoto = '/home/profile_icon.png'; // Using your provided local image
+const defaultCoverPhoto = '/home/Left_side_icon.png'; // Using your provided local image
+
+const API_BASE_URL = import.meta.env.VITE_BACKEND_API_URL;
+
+export const MyProfile = () => {
+    const dispatch = useDispatch();
+    const { user, token, isAuthenticated, isLoading: authLoading } = useSelector((state) => state.auth);
+
+    const [profileData, setProfileData] = useState({
+        name: '',
+        email: user?.email || '',
+        mobile: '',
+
+        address: '',
+        profession: '',
+        about_me: '',
+        skills: '',
+        linkedin_profile_url: '',
+        twitter_profile_url: '',
+    });
+
+    const [profilePhoto, setProfilePhoto] = useState(null);
+    const [coverPhoto, setCoverPhoto] = useState(null);
+    const [profilePhotoPreview, setProfilePhotoPreview] = useState(defaultProfilePhoto);
+    const [coverPhotoPreview, setCoverPhotoPreview] = useState(defaultCoverPhoto);
+    const [profilePhotoRemoved, setProfilePhotoRemoved] = useState(false);
+    const [coverPhotoRemoved, setCoverPhotoRemoved] = useState(false);
+
+    const [loadingProfile, setLoadingProfile] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState(null); // Keep for general component error display
+    const [successMessage, setSuccessMessage] = useState(null); // Keep for general component success display
+
+    // Effect to fetch ALL profile data (User details + Profile details) from the backend
+    useEffect(() => {
+        const fetchAllProfileData = async () => {
+            if (!user?.id || !token) {
+                setError('Authentication details missing. Please log in.');
+                setLoadingProfile(false);
+                return;
+            }
+
+            try {
+                // Fetch User details (name, mobile)
+                const userDetailsResponse = await fetch(`${API_BASE_URL}/api/auth/getUserDetails/${user.id}`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!userDetailsResponse.ok) {
+                    const errorData = await userDetailsResponse.json();
+                    throw new Error(errorData.message || `Failed to fetch user details (status: ${userDetailsResponse.status})`);
+                }
+                const userDetailsResult = await userDetailsResponse.json();
+                const fetchedUserDetails = userDetailsResult.user;
+
+                // Update Redux user object with fetched details (fullName, mobile) for volatile use
+                dispatch(updateUserProfile({ fullName: fetchedUserDetails.fullName, mobile: fetchedUserDetails.mobile }));
+
+                // Fetch Profile details (address, profession, etc.)
+                const profileResponse = await fetch(`${API_BASE_URL}/api/profile/${user.id}`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!profileResponse.ok) {
+                    const errorData = await profileResponse.json();
+                    if (profileResponse.status === 200 && errorData.profile === null) {
+                        console.log(errorData.message || 'Profile not found, ready for creation.');
+                    } else {
+                        throw new Error(errorData.message || `Failed to fetch profile details (status: ${profileResponse.status})`);
+                    }
+                }
+                const profileResult = await profileResponse.json();
+                const fetchedProfile = profileResult.profile;
+
+                // Set local state for all form fields
+                setProfileData((prev) => ({
+                    ...prev,
+                    name: fetchedUserDetails.fullName || '',
+                    mobile: fetchedUserDetails.mobile || '',
+                    address: fetchedProfile?.address || '',
+                    profession: fetchedProfile?.profession || '',
+                    about_me: fetchedProfile?.about_me || '',
+                    skills: fetchedProfile?.skills || '',
+                    linkedin_profile_url: fetchedProfile?.linkedin_profile_url || '',
+                    twitter_profile_url: fetchedProfile?.twitter_profile_url || '',
+                }));
+
+                // Set image previews
+                if (fetchedProfile?.profile_photo_filepath) {
+                    setProfilePhotoPreview(`${API_BASE_URL}/${fetchedProfile.profile_photo_filepath}`);
+                }
+                if (fetchedProfile?.cover_photo_filepath) {
+                    setCoverPhotoPreview(`${API_BASE_URL}/${fetchedProfile.cover_photo_filepath}`);
+                }
+
+            } catch (err) {
+                console.error("Error fetching profile data:", err);
+                setError("Failed to load profile data. " + err.message);
+            } finally {
+                setLoadingProfile(false);
+            }
+        };
+
+        if (isAuthenticated && user?.id) {
+            fetchAllProfileData();
+        } else {
+            setLoadingProfile(false);
+        }
+    }, [user?.id, token, isAuthenticated, dispatch]);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setProfileData(prevData => ({ ...prevData, [name]: value }));
+    };
+
+    const handleFileChange = (e, type) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const acceptedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        const maxCoverSize = 2 * 1024 * 1024; // 2 MB
+        const maxProfileSize = 1 * 1024 * 1024; // 1 MB
+
+        if (!acceptedTypes.includes(file.type)) {
+            Swal.fire({ // Use SweetAlert2 for error
+                icon: 'error',
+                title: 'Invalid File Type',
+                text: `Only JPG, JPEG, and PNG image files are allowed for ${type} photo.`,
+            });
+            e.target.value = null; // Clear the input
+            return;
+        }
+
+        if (type === 'cover' && file.size > maxCoverSize) {
+            Swal.fire({ // Use SweetAlert2 for error
+                icon: 'error',
+                title: 'File Too Large',
+                text: `Cover photo cannot be larger than 2 MB.`,
+            });
+            e.target.value = null;
+            return;
+        }
+
+        if (type === 'profile' && file.size > maxProfileSize) {
+            Swal.fire({ // Use SweetAlert2 for error
+                icon: 'error',
+                title: 'File Too Large',
+                text: `Profile photo cannot be larger than 1 MB.`,
+            });
+            e.target.value = null;
+            return;
+        }
+
+        setError(null); // Clear previous general error
+
+        if (type === 'profile') {
+            setProfilePhoto(file);
+            setProfilePhotoPreview(URL.createObjectURL(file));
+            setProfilePhotoRemoved(false);
+        } else if (type === 'cover') {
+            setCoverPhoto(file);
+            setCoverPhotoPreview(URL.createObjectURL(file));
+            setCoverPhotoRemoved(false);
+        }
+    };
+
+    const handleRemovePhoto = (type) => {
+        // Use SweetAlert2 for confirmation
+        Swal.fire({
+            title: 'Are you sure?',
+            text: `You are about to remove your ${type} photo. This cannot be undone!`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, remove it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                if (type === 'profile') {
+                    setProfilePhoto(null);
+                    setProfilePhotoPreview(defaultProfilePhoto);
+                    setProfilePhotoRemoved(true);
+                } else if (type === 'cover') {
+                    setCoverPhoto(null);
+                    setCoverPhotoPreview(defaultCoverPhoto);
+                    setCoverPhotoRemoved(true);
+                }
+                Swal.fire('Removed!', `Your ${type} photo has been removed.`, 'success');
+            }
+        });
+    };
+
+    const validateForm = () => {
+        setError(null);
+        setSuccessMessage(null);
+
+        const mobileRegex = /^(\+?\d{1,3}[- ]?)?\d{7,15}$/;
+        if (profileData.mobile && !mobileRegex.test(profileData.mobile)) {
+            Swal.fire({ icon: 'error', title: 'Invalid Input', text: 'Invalid mobile number format. Please enter 7-15 digits, optionally with country code.' }); //
+            return false;
+        }
+
+        if (profileData.about_me.length > 255) {
+            Swal.fire({ icon: 'error', title: 'Invalid Input', text: 'About Me cannot exceed 255 characters.' }); //
+            return false;
+        }
+        if (profileData.skills.length > 1000) {
+            Swal.fire({ icon: 'error', title: 'Invalid Input', text: 'Skills cannot exceed 1000 characters.' }); //
+            return false;
+        }
+
+        const urlRegex = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i;
+        if (profileData.linkedin_profile_url && !urlRegex.test(profileData.linkedin_profile_url)) {
+            Swal.fire({ icon: 'error', title: 'Invalid Input', text: 'Invalid LinkedIn URL. Must start with http:// or https://' }); //
+            return false;
+        }
+        if (profileData.twitter_profile_url && !urlRegex.test(profileData.twitter_profile_url)) {
+            Swal.fire({ icon: 'error', title: 'Invalid Input', text: 'Invalid Twitter URL. Must start with http:// or https://' }); //
+            return false;
+        }
+
+        return true;
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        if (!validateForm()) {
+            return;
+        }
+
+        if (!user?.id || !token) {
+            Swal.fire({ icon: 'error', title: 'Authentication Error', text: 'Authentication details missing. Please log in again.' }); //
+            return;
+        }
+
+        setSaving(true);
+        setError(null);
+        setSuccessMessage(null); // Clear previous messages
+
+        try {
+            // --- 1. Update User Schema (name, mobile) ---
+            const userUpdatePayload = {
+                fullName: profileData.name,
+                mobile: profileData.mobile,
+            };
+
+            const userUpdateResponse = await fetch(`${API_BASE_URL}/api/auth/updateUser/${user.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(userUpdatePayload),
+            });
+
+            const userUpdateResult = await userUpdateResponse.json();
+            if (!userUpdateResponse.ok) {
+                throw new Error(userUpdateResult.message || 'Failed to update user data.');
+            }
+            dispatch(updateUserProfile({ fullName: userUpdateResult.user.fullName, mobile: userUpdateResult.user.mobile }));
+
+
+            // --- 2. Update/Create Profile Schema (other fields + photos) ---
+            const profileFormData = new FormData();
+            profileFormData.append('address', profileData.address);
+            profileFormData.append('profession', profileData.profession);
+            profileFormData.append('about_me', profileData.about_me);
+            profileFormData.append('skills', profileData.skills);
+            profileFormData.append('linkedin_profile_url', profileData.linkedin_profile_url);
+            profileFormData.append('twitter_profile_url', profileData.twitter_profile_url);
+
+            if (profilePhoto) profileFormData.append('profile_photo', profilePhoto);
+            if (coverPhoto) profileFormData.append('cover_photo', coverPhoto);
+            if (profilePhotoRemoved) profileFormData.append('profile_photo_removed', 'true');
+            if (coverPhotoRemoved) profileFormData.append('cover_photo_removed', 'true');
+
+            const profileUpdateResponse = await fetch(`${API_BASE_URL}/api/profile/${user.id}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: profileFormData,
+            });
+
+            const profileUpdateResult = await profileUpdateResponse.json();
+            if (!profileUpdateResponse.ok) {
+                throw new Error(profileUpdateResult.message || 'Failed to update profile data.');
+            }
+
+            // Show combined success message with SweetAlert2
+            Swal.fire({
+                icon: 'success',
+                title: 'Profile Updated!',
+                text: (userUpdateResult.message || 'User data updated.') + ' ' + (profileUpdateResult.message || 'Profile data updated.'),
+            });
+
+            // Update photo previews based on backend response
+            if (profileUpdateResult.profile && profileUpdateResult.profile.profile_photo_filepath) {
+                setProfilePhotoPreview(`${API_BASE_URL}/${profileUpdateResult.profile.profile_photo_filepath}`);
+            } else if (profilePhotoRemoved) {
+                setProfilePhotoPreview(defaultProfilePhoto);
+            }
+
+            if (profileUpdateResult.profile && profileUpdateResult.profile.cover_photo_filepath) {
+                setCoverPhotoPreview(`${API_BASE_URL}/${profileUpdateResult.profile.cover_photo_filepath}`);
+            } else if (coverPhotoRemoved) {
+                setCoverPhotoPreview(defaultCoverPhoto);
+            }
+
+            setProfilePhotoRemoved(false);
+            setCoverPhotoRemoved(false);
+
+        } catch (err) {
+            console.error("Error saving profile:", err);
+            Swal.fire({ // Use SweetAlert2 for error
+                icon: 'error',
+                title: 'Update Failed',
+                text: err.message || "An unexpected error occurred while saving.",
+            });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (authLoading || loadingProfile) {
+        return (
+            <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
+                <Spinner animation="border" role="status">
+                    <span className="visually-hidden">Loading Profile...</span>
+                </Spinner>
+                <p className="ms-3 text-secondary">Loading profile...</p>
+            </div>
+        );
+    }
+
+    if (!isAuthenticated) {
+        return (
+            <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
+                <p className="text-danger">Please log in to view your profile.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="d-flex justify-content-center py-0" style={{ minHeight: '100vh', backgroundColor: '#f8f9fa', borderRadius: '15px' }}>
+            <Container className="bg-white p-4 p-md-4 position-relative" style={{ maxWidth: '100%', borderRadius: '15px' }}>
+                {/* Error/Success Messages from general component error/success state */}
+                {/* These are less critical as SweetAlert2 handles most explicit feedback */}
+                {error && <Alert variant="danger">{error}</Alert>}
+                {successMessage && <Alert variant="success">{successMessage}</Alert>}
+
+                {/* Cover Photo Section */}
+                <div className="position-relative w-100 bg-light rounded overflow-hidden border border-secondary d-flex align-items-center justify-content-center mb-4" style={{ height: '180px' }}>
+                    <Image src={coverPhotoPreview} alt="Cover Photo" className="h-100 w-100" style={{ objectFit: 'cover' }} />
+                    <div className="position-absolute" style={{ top: '10px', right: '10px' }}>
+                        <Form.Label htmlFor="coverPhotoUpload" className="btn btn-sm btn-light rounded-2 shadow-sm me-2" style={{ padding: '0.5rem' }}>
+                            <FontAwesomeIcon icon={faPencilAlt} /> Change Cover
+                        </Form.Label>
+                        <Form.Control
+                            type="file"
+                            id="coverPhotoUpload"
+                            name="cover_photo"
+                            onChange={(e) => handleFileChange(e, 'cover')}
+                            className="d-none"
+                            accept="image/jpeg,image/jpg,image/png"
+                        />
+                        {coverPhotoPreview !== defaultCoverPhoto && (
+                            <Button variant="danger" size="sm" className="rounded-2 shadow-sm" onClick={() => handleRemovePhoto('cover')}>
+                                <FontAwesomeIcon icon={faTimes} /> Remove
+                            </Button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Profile Picture Section */}
+                <div className="position-absolute start-50 translate-middle rounded-circle border bg-light d-flex align-items-center justify-content-center shadow" style={{ width: '120px', height: '120px', top: '250px', zIndex: 10 }}>
+                    <Image src={profilePhotoPreview} alt="Profile Photo" className="h-100 w-100 rounded-circle" style={{ objectFit: 'cover' }} />
+                    <div className="position-absolute" style={{ bottom: '0', right: '0' }}>
+                        <Form.Label htmlFor="profilePhotoUpload" className="btn btn-sm btn-light rounded-circle p-2 shadow-sm">
+                            <FontAwesomeIcon icon={faCamera} />
+                        </Form.Label>
+                        <Form.Control
+                            type="file"
+                            id="profilePhotoUpload"
+                            name="profile_photo"
+                            onChange={(e) => handleFileChange(e, 'profile')}
+                            className="d-none"
+                            accept="image/jpeg,image/jpg,image/png"
+                        />
+                    </div>
+                    {profilePhotoPreview !== defaultProfilePhoto && (
+                        <Button variant="danger" size="sm" className="position-absolute rounded-circle shadow-sm" style={{ bottom: '0', left: '100%', transform: 'translateX(-50%)' }} onClick={() => handleRemovePhoto('profile')}>
+                            <FontAwesomeIcon icon={faTimes} />
+                        </Button>
+                    )}
+                </div>
+
+                <Form onSubmit={handleSubmit} className="mt-5 pt-5">
+                    {/* Name and Email */}
+                    <Row className="mb-3">
+                        <Col md={6}>
+                            <Form.Group controlId="formName" className="mb-3">
+                                <Form.Label className="text-muted">Name :</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    name="name"
+                                    value={profileData.name}
+                                    onChange={handleChange}
+                                    className="rounded shadow-sm"
+                                    required
+                                />
+                            </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                            <Form.Group controlId="formEmail" className="mb-3">
+                                <Form.Label className="text-muted">Email:</Form.Label>
+                                <Form.Control
+                                    type="email"
+                                    name="email"
+                                    value={profileData.email}
+                                    onChange={handleChange}
+                                    className="rounded shadow-sm bg-light"
+                                    readOnly
+                                />
+                            </Form.Group>
+                        </Col>
+                    </Row>
+
+                    {/* Mobile and Address */}
+                    <Row className="mb-3">
+                        <Col md={6}>
+                            <Form.Group controlId="formMobile" className="mb-3">
+                                <Form.Label className="text-muted">Mobile:</Form.Label>
+                                <Form.Control
+                                    type="tel"
+                                    name="mobile"
+                                    value={profileData.mobile}
+                                    onChange={handleChange}
+                                    className="rounded shadow-sm"
+                                    placeholder="e.g., +1 123-456-7890"
+                                />
+                            </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                            <Form.Group controlId="formAddress" className="mb-3">
+                                <Form.Label className="text-muted">Address:</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    name="address"
+                                    value={profileData.address}
+                                    onChange={handleChange}
+                                    className="rounded shadow-sm"
+                                    placeholder="e.g., 123 Main St, City, State"
+                                />
+                            </Form.Group>
+                        </Col>
+                    </Row>
+
+                    {/* Profession and About Me */}
+                    <Row className="mb-3">
+                        <Col>
+                            <Form.Group controlId="formProfession" className="mb-3">
+                                <Form.Label className="text-muted">Profession</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    name="profession"
+                                    value={profileData.profession}
+                                    onChange={handleChange}
+                                    className="rounded shadow-sm"
+                                    placeholder="e.g., Software Engineer, Marketing Specialist"
+                                />
+                            </Form.Group>
+                        </Col>
+                    </Row>
+
+                    <Row className="mb-3">
+                        <Col>
+                            <Form.Group controlId="formAboutMe" className="mb-3">
+                                <Form.Label className="text-muted">About Me</Form.Label>
+                                <Form.Control
+                                    as="textarea"
+                                    rows={4}
+                                    name="about_me"
+                                    value={profileData.about_me}
+                                    onChange={handleChange}
+                                    className="rounded shadow-sm"
+                                    placeholder="Tell us a little about yourself..."
+                                    maxLength={255}
+                                />
+                                <Form.Text className="text-muted">
+                                    {profileData.about_me.length} / 255 characters
+                                </Form.Text>
+                            </Form.Group>
+                        </Col>
+                    </Row>
+
+                    {/* Skills */}
+                    <Row className="mb-3">
+                        <Col>
+                            <Form.Group controlId="formSkills" className="mb-3">
+                                <Form.Label className="text-muted">Skills (comma-separated)</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    name="skills"
+                                    value={profileData.skills}
+                                    onChange={handleChange}
+                                    className="rounded shadow-sm"
+                                    placeholder="e.g., React, Node.js, Marketing, Design"
+                                    maxLength={1000}
+                                />
+                                <Form.Text className="text-muted">
+                                    {profileData.skills.length} / 1000 characters
+                                </Form.Text>
+                            </Form.Group>
+                        </Col>
+                    </Row>
+
+                    {/* Social Media Links */}
+                    <Row className="mb-4">
+                        <Col md={6}>
+                            <Form.Group controlId="formLinkedIn" className="mb-3">
+                                <Form.Label className="text-muted">LinkedIn Profile URL</Form.Label>
+                                <Form.Control
+                                    type="url"
+                                    name="linkedin_profile_url"
+                                    value={profileData.linkedin_profile_url}
+                                    onChange={handleChange}
+                                    className="rounded shadow-sm"
+                                    placeholder="https://linkedin.com/in/yourprofile"
+                                />
+                            </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                            <Form.Group controlId="formTwitter" className="mb-3">
+                                <Form.Label className="text-muted">Twitter Profile URL</Form.Label>
+                                <Form.Control
+                                    type="url"
+                                    name="twitter_profile_url"
+                                    value={profileData.twitter_profile_url}
+                                    onChange={handleChange}
+                                    className="rounded shadow-sm"
+                                    placeholder="https://twitter.com/yourhandle"
+                                />
+                            </Form.Group>
+                        </Col>
+                    </Row>
+
+                    {/* Submit Button */}
+                    <div className="d-flex justify-content-end">
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            className="shadow-sm"
+                            disabled={saving}
+                        >
+                            {saving ? (
+                                <>
+                                    <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+                                    <span className="ms-2">Saving...</span>
+                                </>
+                            ) : (
+                                'Save Profile'
+                            )}
+                        </Button>
+                    </div>
+                </Form>
+            </Container>
+        </div>
+    );
+};
+
+export default MyProfile;
