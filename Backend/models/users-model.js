@@ -1,18 +1,17 @@
 const mongoose = require('mongoose');
 const argon2 = require('argon2');
-const otpGenerator = require('otp-generator'); // Import otp-generator
-const Counter = require('./counter-model');
+const Counter = require('../models/counter-model');
 
 const userSchema = new mongoose.Schema({
-    userId: { // New: Unique user ID (e.g., MC-20251)
+    userId: {
         type: String,
         unique: true,
         trim: true,
-        required: false // Will be auto-generated
+        required: false
     },
     username: {
         type: String,
-        required: [true, "Please file the username"],
+        required: [true, "Please fill the username"],
         unique: [true, "Username already exists"],
         minlength: [3, "Username must be at least 3 characters long"],
         maxlength: [30, "Username must be at most 30 characters long"],
@@ -23,11 +22,11 @@ const userSchema = new mongoose.Schema({
         required: [true, "Please fill the email id"],
         unique: [true, "Email already exists"],
         match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Please fill a valid email address"],
-        lowercase: true, // Store email in lowercase
-        trim: true, // Remove leading and trailing spaces
+        lowercase: true,
+        trim: true,
         validate: {
             validator: function (v) {
-                return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); // Validates email format
+                return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
             },
             message: props => `${props.value} is not a valid email!`
         }
@@ -40,7 +39,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: [true, "Please fill the password"],
         minlength: [10, "Password must be at least 10 characters long"],
-        select: false, // To prevent from returning in the queries.
+        select: false,
     },
     mobile: {
         type: Number,
@@ -48,22 +47,22 @@ const userSchema = new mongoose.Schema({
         unique: [true, "Mobile number already exists"],
         validate: {
             validator: function (v) {
-                return /\d{10}/.test(v); // Validates that the mobile number is 10 digits
+                return /\d{10}/.test(v);
             },
             message: props => `${props.value} is not a valid mobile number!`
         }
     },
-    otp: { // New: For storing the OTP
+    otp: {
         type: String,
         default: null,
     },
-    otpExpires: { // New: For OTP expiration
+    otpExpires: {
         type: Date,
         default: null,
     },
-    isEmailVerified: { // New: Email verification status
+    isEmailVerified: {
         type: Number,
-        default: 0, // 0 for not verified, 1 for verified
+        default: 0,
     },
     isDeleted: {
         type: Boolean,
@@ -83,26 +82,11 @@ const userSchema = new mongoose.Schema({
     },
 }, {
     timestamps: true
-})
+});
 
-// Pre-save hook to hash password before saving
+// Pre-save hook to handle userId generation and password hashing
 userSchema.pre('save', async function (next) {
-    // Only hash the password if it has been modified (or is new)
-    if (!this.isModified('password')) {
-        return next();
-    }
-    try {
-        this.password = await argon2.hash(this.password, {
-            type: argon2.argon2id,
-            memoryCost: 2 ** 16,     // 64 MB
-            timeCost: 3,             // Iterations
-            parallelism: 1           // Threads
-        });
-        next();
-    } catch (error) {
-        next(error);
-    }
-    // Pre-save hook for auto-generating userId (from previous steps)
+    // Generate userId for new documents without existing userId
     if (this.isNew && !this.userId) {
         try {
             const currentYear = new Date().getFullYear();
@@ -111,11 +95,33 @@ userSchema.pre('save', async function (next) {
                 { $inc: { sequence_value: 1 } },
                 { new: true, upsert: true }
             );
-            this.userId = `MC-${currentYear}${counter.sequence_value}`;
+            
+            if (!counter) {
+                throw new Error('Failed to generate user ID');
+            }
+            
+            // Pad sequence value to 5 digits (e.g., 00001)
+            const paddedSequence = String(counter.sequence_value).padStart(5, '0');
+            this.userId = `MC-${currentYear}${paddedSequence}`;
         } catch (error) {
             return next(error);
         }
     }
+
+    // Hash password if modified
+    if (this.isModified('password')) {
+        try {
+            this.password = await argon2.hash(this.password, {
+                type: argon2.argon2id,
+                memoryCost: 2 ** 16,
+                timeCost: 3,
+                parallelism: 1
+            });
+        } catch (error) {
+            return next(error);
+        }
+    }
+
     next();
 });
 
@@ -128,7 +134,5 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
     }
 };
 
-
-// Collection name
-const User = new mongoose.model('users', userSchema);
+const User = mongoose.model('User', userSchema);
 module.exports = User;

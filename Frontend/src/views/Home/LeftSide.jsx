@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { UserStatus } from './Components/UserStatus';
 import { LeftSideButtonShortCut } from './Components/LeftSideButtomShortCut';
 import { LeftSideFooter } from './Components/LeftSideFooter';
+import { Link } from 'react-router-dom';
 export const LeftSideBar = () => {
     return <>
 
@@ -18,7 +19,7 @@ export const LeftSideBar = () => {
                 <ListGroup.Item ><FontAwesomeIcon fixedWidth icon="network-wired" color="#74C0FC" /> Connection</ListGroup.Item>
                 <ListGroup.Item ><FontAwesomeIcon fixedWidth icon="star" color="#74C0FC" /> Revenue</ListGroup.Item>
                 <ListGroup.Item ><FontAwesomeIcon fixedWidth icon="gear" color="#74C0FC" /> Setting</ListGroup.Item>
-                <ListGroup.Item className='text-center'>View Profile</ListGroup.Item>
+                <ListGroup.Item as={Link} to="/profile" className='text-center'>View Profile</ListGroup.Item>
             </ListGroup>
             {/* Status of the user */}
             <UserStatus />
