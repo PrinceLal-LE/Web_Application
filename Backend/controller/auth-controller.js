@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const otpGenerator = require('otp-generator');
-
+const argon2 = require('argon2');
 const home = async (req, res) => {
     try {
         res.status(200).send("User Authenticated Successfully");
@@ -182,7 +182,6 @@ const resendOTP = async (req, res) => {
     }
 };
 
-// Verify OTP
 // Verify OTP route handler
 const verifyOTP = async (req, res) => {
     try {
@@ -278,7 +277,7 @@ const login = async (req, res) => {
 
 const updateUser = async (req, res) => {
     const { userId } = req.params; // ID of the user to update
-    const { fullName, mobile } = req.body; // Fields to update
+    const { name, mobile } = req.body; // Fields to update
     const authenticatedUserId = req.userId; // ID from JWT payload
 
     // Security check: Ensure authenticated user is updating their own profile
@@ -287,26 +286,50 @@ const updateUser = async (req, res) => {
     }
 
     try {
-        const user = await userModel.findById(userId);
-        if (!user) {
+
+        // Build the update object, mapping frontend fields to backend schema fields
+        const updateObject = {};
+        if (name !== undefined) {
+            updateObject.name = name; // Map frontend 'fullName' to backend 'name'
+        }
+        if (mobile !== undefined) {
+            updateObject.mobile = mobile; // Map frontend 'mobile' to backend 'mobile'
+        }
+        // Use findByIdAndUpdate to update the user document and return the updated version
+        const updatedUser = await userModel.findByIdAndUpdate(
+            userId,
+            updateObject,
+            { new: true, runValidators: true } // 'new: true' returns the updated doc, 'runValidators: true' runs Mongoose schema validators on the update
+        );
+        if (!updatedUser) {
             return res.status(404).json({ message: 'User not found.' });
         }
 
-        // Update only allowed fields
-        if (fullName !== undefined) user.fullName = fullName;
-        if (mobile !== undefined) user.mobile = mobile;
+        // // Update only allowed fields
+        // if (fullName !== undefined) updatedUser.fullName = fullName;
+        // if (mobile !== undefined) updatedUser.mobile = mobile;
 
-        await user.save();
+        // await updatedUser.save();
 
-        // Return updated user data (excluding sensitive info like password)
-        const updatedUser = {
-            id: user._id.toString(),
-            email: user.email,
-            fullName: user.name,
-            mobile: user.mobile,
+        // // Return updated user data (excluding sensitive info like password)
+        // const updatedUserDetails = {
+        //     id: updatedUser._id.toString(),
+        //     email: updatedUser.email,
+        //     fullName: updatedUser.name,
+        //     mobile: updatedUser.mobile,
+        // };
+
+        // Return a clean, updated user object to the frontend
+        const userResponse = {
+            id: updatedUser._id,
+            email: updatedUser.email,
+            name: updatedUser.name, // Return the actual name from DB as name
+            mobile: updatedUser.mobile,
+            userId: updatedUser.userId,
+            // Include any other non-sensitive fields you need
         };
 
-        res.status(200).json({ message: 'User data updated successfully.', user: updatedUser });
+        res.status(200).json({ message: 'User data updated successfully.', user: userResponse });
 
     } catch (error) {
         console.error('Error updating user data:', error);
@@ -331,7 +354,7 @@ const getUserDetails = async (req, res) => {
         res.status(200).json({
             user: {
                 id: user._id.toString(),
-                fullName: user.name, 
+                name: user.name,
                 email: user.email,
                 mobile: user.mobile,
             }
@@ -342,6 +365,116 @@ const getUserDetails = async (req, res) => {
     }
 };
 
+// Forgot Password Request
+const forgotPasswordRequest = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ message: "Email is required." });
+        }
+
+        const user = await userModel.findOne({ email });
+        if (!user) {
+            // Requirement 3: If email not registered
+            return res.status(404).json({ message: "Please register first. Your email is not registered with us." });
+        }
+
+        // Generate new OTP (reusing OTP logic)
+        const otp = otpGenerator.generate(5, {
+            upperCaseAlphabets: true,
+            lowerCaseAlphabets: true,
+            specialChars: false,
+            digits: true
+        });
+        user.otp = otp;
+        user.otpExpires = new Date(Date.now() + 10 * 60 * 1000); // OTP valid for 10 minutes
+
+        await user.save();
+
+        // Send OTP email
+        await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: user.email,
+            subject: 'Password Reset OTP for Mould Connect',
+            html: `<p>Your One-Time Password (OTP) for password reset is: <strong>${otp}</strong></p>
+                   <p>This OTP is valid for 10 minutes. Do not share it with anyone.</p>`,
+        });
+
+        res.status(200).json({
+            message: "OTP sent to your email for password reset.",
+            userId: user._id.toString(), // Send userId to frontend for next step
+        });
+
+    } catch (error) {
+        console.error("Error during forgot password request:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
+//  New: Verify OTP for Password Reset 
+const resetPasswordVerifyOtp = async (req, res) => {
+    try {
+        const { userId, otp } = req.body; // Expecting userId from frontend
+        const user = await userModel.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+        if (user.otp !== otp) {
+            return res.status(400).json({ message: 'Invalid OTP.' });
+        }
+        if (user.otpExpires < new Date()) {
+            return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+        }
+
+        // OTP is valid. Clear OTP fields and signal readiness for password reset.
+        // DO NOT set isEmailVerified here, as it's for initial registration.
+        // We might want to set a temporary flag or token to allow password reset.
+        // For simplicity, we'll just clear OTP and let the next endpoint handle the reset based on userId.
+        user.otp = null;
+        user.otpExpires = null;
+        await user.save();
+
+        res.status(200).json({ message: 'OTP verified successfully! You can now reset your password.' });
+
+    } catch (error) {
+        console.error('Error verifying OTP for password reset:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
+//  New: Reset Password 
+const resetPassword = async (req, res) => {
+    try {
+        const { userId, password } = req.body; // Expecting userId and new password
+        if (!password) {
+            return res.status(400).json({ message: "New password is required." });
+        }
+
+        // Password validation (Requirement 7: follow registration password requirement)
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{10,}$/;
+        if (!passwordRegex.test(password)) {
+            return res.status(400).json({ message: "Password must be at least 10 characters long and contain at least one uppercase letter, one lowercase letter, and one digit." });
+        }
+
+        const user = await userModel.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        // Hash the new password using argon2 (handled by pre-save hook)
+        user.password = password; // Assign plain password, pre-save hook will hash it
+        await user.save(); // This will trigger the pre-save hook to hash the new password
+
+        res.status(200).json({ message: 'Password reset successfully! You can now login with your new password.' });
+
+    } catch (error) {
+        console.error('Error resetting password:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
+
 
 module.exports = {
     home,
@@ -350,5 +483,8 @@ module.exports = {
     updateUser,
     getUserDetails,
     resendOTP,
-    verifyOTP
+    verifyOTP,
+    forgotPasswordRequest,
+    resetPasswordVerifyOtp,
+    resetPassword
 };

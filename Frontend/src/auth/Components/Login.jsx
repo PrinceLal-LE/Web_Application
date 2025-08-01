@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Container } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setLogin } from '../../store/authSlice';
 import Swal from 'sweetalert2';
@@ -219,7 +219,7 @@ export const Login = () => {
                                     </label>
                                 </div>
                                 <div className="forget">
-                                    <small><a href="#">Forget Password?</a></small>
+                                    <small><Link to="/forgot-password">Forget Password?</Link></small>
                                 </div>
                             </div>
                             <div className="input-group mb-3 justify-content-center">
@@ -326,7 +326,7 @@ export const Login = () => {
                                     </label>
                                 </div>
                                 <div className="forget">
-                                    <small><a href="#">Forget Password?</a></small>
+                                    <small><Link to="/forgot-password">Forget Password?</Link></small>
                                 </div>
                             </div>
                             <div className="input-group mb-3 justify-content-center">

@@ -19,7 +19,8 @@ export const MyProfile = () => {
 
     const [profileData, setProfileData] = useState({
         name: '',
-        email: user?.email || '',
+        // email: user?.email || '',
+        email: '',
         mobile: '',
         address: '',
         profession: '',
@@ -113,6 +114,7 @@ export const MyProfile = () => {
                 setProfileData((prev) => ({
                     ...prev,
                     name: fetchedUserDetails.fullName || '',
+                    email: fetchedUserDetails.email || '', 
                     mobile: fetchedUserDetails.mobile || '',
                     address: fetchedProfile?.address || '',
                     profession: fetchedProfile?.profession || '',
@@ -282,7 +284,7 @@ export const MyProfile = () => {
         try {
             // --- 1. Update User Schema (name, mobile) ---
             const userUpdatePayload = {
-                fullName: profileData.name,
+                name: profileData.name,
                 mobile: profileData.mobile,
             };
 
@@ -421,8 +423,8 @@ export const MyProfile = () => {
                 </div>
 
                 {/* Profile Picture Section */}
-                <div className="position-absolute start-50 translate-middle rounded-circle border bg-light d-flex align-items-center justify-content-center shadow" style={{ width: '120px', height: '120px', top: '250px', zIndex: 10 }}>
-                    <Image src={profilePhotoPreview} alt="Profile Photo" className="h-100 w-100 rounded-circle" style={{ objectFit: 'cover' }} />
+                <div className="position-absolute start-50 translate-middle  border bg-light d-flex align-items-center justify-content-center " style={{ width: '120px', height: '120px', top: '230px', zIndex: 10 }}>
+                    <Image src={profilePhotoPreview} alt="Profile Photo" className="h-100 w-100 " style={{ objectFit: 'cover' }} />
                     <div className="position-absolute" style={{ bottom: '0', right: '0' }}>
                         <Form.Label htmlFor="profilePhotoUpload" className="btn btn-sm btn-light rounded-circle p-2 shadow-sm">
                             <FontAwesomeIcon icon={faCamera} />

@@ -13,7 +13,7 @@ import { setLogout } from './store/authSlice';
 import { Profile } from './views/profile.jsx';
 import { LogoutComponent } from './component/Logout/Logout';
 import { EmailVerification } from './views/auth/EmailVerification.jsx';
-
+import { ForgotPassword } from './views/auth/ForgotPassword.jsx';
 // A private route component to guard routes
 const PrivateRoute = ({ children }) => {
   // Use useSelector to get the isAuthenticated state and isLoading state from Redux
@@ -40,7 +40,7 @@ const MainApplicationLayout = () => {
   const isLoading = useSelector((state) => state.auth.isLoading);
 
   // Hide Navbar on specific authentication paths
-  const hideNavbar = ['/login', '/login-or-signup', '/register','/email-verification'].includes(location.pathname);
+  const hideNavbar = ['/login', '/login-or-signup', '/register','/email-verification','/forgot-password'].includes(location.pathname);
 
   // If the app is still loading the auth state, don't render the layout yet
   if (isLoading) {
@@ -58,6 +58,7 @@ const MainApplicationLayout = () => {
         <Route path="/login-or-signup" element={<CommonAuth />} />
         <Route path="/register" element={<CommonAuth />} />
         <Route path="/email-verification" element={<EmailVerification />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         {/* New Logout Route */}
         <Route path="/logout" element={<LogoutComponent />} />
         {/* Private/Protected Routes - Only accessible if authenticated */}
