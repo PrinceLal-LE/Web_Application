@@ -71,8 +71,8 @@ const trendingItems = [
         type: 'video',
         title: 'Mastering React Hooks in 2024',
         description: 'Learn advanced techniques for building scalable React applications with hooks.',
-        thumbnail: getYouTubeThumbnail('https://www.youtube.com/watch?v=44W6rZGxO2E'),
-        contentUrl: 'https://www.youtube.com/watch?v=44W6rZGxO2E'
+        thumbnail: getYouTubeThumbnail('https://www.youtube.com/watch?v=pI6NZ826qd0'),
+        contentUrl: 'https://www.youtube.com/watch?v=pI6NZ826qd0'
     },
     {
         id: 4,

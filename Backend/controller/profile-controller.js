@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const validator = require('validator');
 
+
 // Requirement 10: Maintain the eRepo folder path in the env file
 // It should be on the root of the Backend project
 const eRepoPath = process.env.EREPO_PATH || path.join(__dirname, '../../eRepo');
@@ -12,21 +13,97 @@ if (!fs.existsSync(eRepoPath)) {
 }
 
 // Helper function to safely delete old files
-const deleteOldFile = (relativeFilePath) => {
-    // Construct the absolute path
-    const absoluteFilePath = path.join(eRepoPath, path.basename(relativeFilePath || ''));
-    // Only delete if the file exists and is within the eRepo directory
-    if (fs.existsSync(absoluteFilePath)) {
+// const deleteOldFile = (filePath) => {
+//     // filePath now needs to be an absolute path from the root
+//     if (filePath && fs.existsSync(filePath)) {
+//         try {
+//             fs.unlinkSync(filePath);
+//             console.log(`Successfully deleted old file: ${filePath}`);
+//         } catch (err) {
+//             console.error(`Error deleting old file ${filePath}:`, err);
+//         }
+//     }
+// };
+// Helper function to safely delete old files
+const deleteOldFile = (filePath) => {
+    // This helper function remains the same from the previous solution
+    if (filePath && fs.existsSync(filePath)) {
         try {
-            fs.unlinkSync(absoluteFilePath);
-            console.log(`Successfully deleted old file: ${absoluteFilePath}`);
+            if (filePath.startsWith(eRepoPath)) {
+                fs.unlinkSync(filePath);
+                console.log(`[File Deletion] Successfully deleted old file: ${filePath}`);
+                return true;
+            } else {
+                console.warn(`[File Deletion] Skipped deletion: Path is outside eRepo: ${filePath}`);
+                return false;
+            }
         } catch (err) {
-            console.error(`Error deleting old file ${absoluteFilePath}:`, err);
+            console.error(`[File Deletion] Error deleting old file ${filePath}:`, err);
+            return false;
         }
+    } else {
+        console.log(`[File Deletion] No old file found at path: ${filePath}`);
+        return true;
     }
 };
 
+
 const profileController = {
+
+    deleteProfilePhoto: async (req, res) => {
+        const { userId, photoType } = req.body; // CRITICAL: Get userId and photoType from the body of the POST request
+        const authenticatedUserId = req.userId; // From authMiddleware
+
+        if (userId !== authenticatedUserId.toString()) {
+            return res.status(403).json({ message: 'Forbidden: You can only delete your own photos.' });
+        }
+
+        try {
+            const profile = await Profile.findOne({ user_id: authenticatedUserId });
+            if (!profile) {
+                return res.status(404).json({ message: 'Profile not found.' });
+            }
+
+            let updateField = {};
+            let filePathToDelete = null;
+
+            if (photoType === 'profile' && profile.profile_photo_filepath) {
+                filePathToDelete = path.join(eRepoPath, profile.profile_photo_filepath);
+                updateField = { profile_photo_filepath: null, profile_photo_filename: null };
+            } else if (photoType === 'cover' && profile.cover_photo_filepath) {
+                filePathToDelete = path.join(eRepoPath, profile.cover_photo_filepath);
+                updateField = { cover_photo_filepath: null, cover_photo_filename: null };
+            } else {
+                return res.status(400).json({ message: 'No photo of this type found or invalid photo type.' });
+            }
+
+            const isDeleted = deleteOldFile(filePathToDelete);
+
+            if (isDeleted) {
+                // Use findByIdAndUpdate to ensure the database update is atomic and successful
+                const updatedProfile = await Profile.findByIdAndUpdate(
+                    profile._id,
+                    { $set: updateField },
+                    { new: true } // Return the updated document
+                );
+
+                if (updatedProfile) {
+                    res.status(200).json({ message: `${photoType} photo deleted successfully.`, profile: updatedProfile });
+                } else {
+                    res.status(500).json({ message: 'Failed to update database after deleting photo.' });
+                }
+
+            } else {
+                // This will happen if deleteOldFile returns false
+                res.status(500).json({ message: 'Failed to delete photo from server.' });
+            }
+
+        } catch (error) {
+            console.error(`Error deleting ${photoType} photo:`, error);
+            res.status(500).json({ message: 'Server error during photo deletion.', error: error.message });
+        }
+    },
+
     upsertProfile: async (req, res) => {
         const { userId: paramUserId } = req.params; // User ID from URL parameter (the profile to update)
         const authenticatedUserId = req.userId; // ID of the authenticated user from JWT
@@ -68,12 +145,10 @@ const profileController = {
         if (twitter_profile_url && !validator.isURL(twitter_profile_url, { require_protocol: true })) {
             return res.status(400).json({ message: 'Invalid Twitter URL. Must start with http:// or https://' });
         }
-        // Mobile number validation is handled in the User update endpoint now.
-        // --- End Validation ---
 
         try {
             let profile = await Profile.findOne({ user_id: authenticatedUserId });
-
+            const userUserId = req.user.userId;
             if (profile) {
                 // --- Update Existing Profile ---
                 // Requirement 5: Check if created_by_email and updated_by_email are same (for update authorization)
@@ -88,28 +163,29 @@ const profileController = {
                 profile.skills = skills;
                 profile.linkedin_profile_url = linkedin_profile_url;
                 profile.twitter_profile_url = twitter_profile_url;
-                profile.updated_by_email = authenticatedUserEmail; // Requirement 6
+                profile.updated_by_email = authenticatedUserEmail;
 
-                // Handle profile photo update/removal
-                if (profile_photo_file) {
-                    deleteOldFile(profile.profile_photo_filepath); // Delete old file
+                // Handle profile photo update (only if a new file is uploaded)
+                if (req.files?.profile_photo) {
+                    // Delete old file using the full path if one exists
+                    if (profile.profile_photo_filepath) {
+                        const oldFileFullPath = path.join(eRepoPath, profile.profile_photo_filepath);
+                        deleteOldFile(oldFileFullPath);
+                    }
+                    const profile_photo_file = req.files.profile_photo[0];
+                    profile.profile_photo_filepath = path.join(userUserId, profile_photo_file.filename);
                     profile.profile_photo_filename = profile_photo_file.filename;
-                    profile.profile_photo_filepath = `eRepo/${profile_photo_file.filename}`; // Path relative to frontend
-                } else if (profile_photo_removed === 'true') {
-                    deleteOldFile(profile.profile_photo_filepath);
-                    profile.profile_photo_filename = null;
-                    profile.profile_photo_filepath = null;
                 }
 
-                // Handle cover photo update/removal
-                if (cover_photo_file) {
-                    deleteOldFile(profile.cover_photo_filepath); // Delete old file
+                // Handle cover photo update (only if a new file is uploaded)
+                if (req.files?.cover_photo) {
+                    if (profile.cover_photo_filepath) {
+                        const oldFileFullPath = path.join(eRepoPath, profile.cover_photo_filepath);
+                        deleteOldFile(oldFileFullPath);
+                    }
+                    const cover_photo_file = req.files.cover_photo[0];
+                    profile.cover_photo_filepath = path.join(userUserId, cover_photo_file.filename);
                     profile.cover_photo_filename = cover_photo_file.filename;
-                    profile.cover_photo_filepath = `eRepo/${cover_photo_file.filename}`;
-                } else if (cover_photo_removed === 'true') {
-                    deleteOldFile(profile.cover_photo_filepath);
-                    profile.cover_photo_filename = null;
-                    profile.cover_photo_filepath = null;
                 }
 
                 await profile.save();
@@ -131,12 +207,13 @@ const profileController = {
 
                 if (profile_photo_file) {
                     profile.profile_photo_filename = profile_photo_file.filename;
-                    profile.profile_photo_filepath = `eRepo/${profile_photo_file.filename}`;
+                    profile.profile_photo_filepath = path.join(userUserId, profile_photo_file.filename);
                 }
                 if (cover_photo_file) {
                     profile.cover_photo_filename = cover_photo_file.filename;
-                    profile.cover_photo_filepath = `eRepo/${cover_photo_file.filename}`;
+                    profile.cover_photo_filepath = path.join(userUserId, cover_photo_file.filename);
                 }
+
 
                 await profile.save();
                 res.status(201).json({ message: 'Profile created successfully', profile });

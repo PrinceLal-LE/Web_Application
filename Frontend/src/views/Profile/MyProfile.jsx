@@ -41,7 +41,7 @@ export const MyProfile = () => {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null); // Keep for general component error display
     const [successMessage, setSuccessMessage] = useState(null); // Keep for general component success display
-
+    const [isDeleting, setIsDeleting] = useState(false); // Track deletion state
     // Function to handle unauthorized access: log out user
     const handleUnauthorized = (message = "Your session has expired or user not found. Please log in again.") => {
         dispatch(setLogout()); // Dispatch logout action to clear Redux state and localStorage
@@ -113,8 +113,8 @@ export const MyProfile = () => {
                 // Set local state for all form fields
                 setProfileData((prev) => ({
                     ...prev,
-                    name: fetchedUserDetails.fullName || '',
-                    email: fetchedUserDetails.email || '', 
+                    name: fetchedUserDetails.name || '',
+                    email: fetchedUserDetails.email || '',
                     mobile: fetchedUserDetails.mobile || '',
                     address: fetchedProfile?.address || '',
                     profession: fetchedProfile?.profession || '',
@@ -126,10 +126,10 @@ export const MyProfile = () => {
 
                 // Set image previews
                 if (fetchedProfile?.profile_photo_filepath) {
-                    setProfilePhotoPreview(`${API_BASE_URL}/${fetchedProfile.profile_photo_filepath}`);
+                    setProfilePhotoPreview(`${API_BASE_URL}/eRepo/${fetchedProfile.profile_photo_filepath}`);
                 }
                 if (fetchedProfile?.cover_photo_filepath) {
-                    setCoverPhotoPreview(`${API_BASE_URL}/${fetchedProfile.cover_photo_filepath}`);
+                    setCoverPhotoPreview(`${API_BASE_URL}/eRepo/${fetchedProfile.cover_photo_filepath}`);
                 }
 
             } catch (err) {
@@ -204,7 +204,6 @@ export const MyProfile = () => {
     };
 
     const handleRemovePhoto = (type) => {
-        // Use SweetAlert2 for confirmation
         Swal.fire({
             title: 'Are you sure?',
             text: `You are about to remove your ${type} photo. This cannot be undone!`,
@@ -213,18 +212,49 @@ export const MyProfile = () => {
             confirmButtonColor: '#3085d6',
             cancelButtonColor: '#d33',
             confirmButtonText: 'Yes, remove it!'
-        }).then((result) => {
+        }).then(async (result) => {
             if (result.isConfirmed) {
-                if (type === 'profile') {
-                    setProfilePhoto(null);
-                    setProfilePhotoPreview(defaultProfilePhoto);
-                    setProfilePhotoRemoved(true);
-                } else if (type === 'cover') {
-                    setCoverPhoto(null);
-                    setCoverPhotoPreview(defaultCoverPhoto);
-                    setCoverPhotoRemoved(true);
+                if (!user?.id || !token) {
+                    Swal.fire('Error!', 'Authentication details are missing. Please log in again.', 'error');
+                    return;
                 }
-                Swal.fire('Removed!', `Your ${type} photo has been removed.`, 'success');
+                setIsDeleting(true); // Start loading spinner for deletion
+                try {
+                    // CRITICAL: Make a POST request to the new endpoint
+                    const response = await fetch(`${API_BASE_URL}/api/profile/delete-photo`, {
+                        method: 'POST', // Use POST method
+                        headers: {
+                            'Content-Type': 'application/json', // Set Content-Type for POST request body
+                            'Authorization': `Bearer ${token}`
+                        },
+                        // CRITICAL: Send userId and photoType in the request body
+                        body: JSON.stringify({
+                            userId: user.id,
+                            photoType: type,
+                        })
+                    });
+
+                    const data = await response.json();
+                    setIsDeleting(false); // Stop loading
+
+                    if (response.ok) {
+                        Swal.fire('Deleted!', data.message, 'success');
+                        // Update local state to reflect the deletion
+                        if (type === 'profile') {
+                            setProfilePhoto(null);
+                            setProfilePhotoPreview(defaultProfilePhoto);
+                        } else if (type === 'cover') {
+                            setCoverPhoto(null);
+                            setCoverPhotoPreview(defaultCoverPhoto);
+                        }
+                    } else {
+                        Swal.fire('Failed!', data.message || 'An error occurred during deletion.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Network error during photo deletion:', error);
+                    setIsDeleting(false);
+                    Swal.fire('Failed!', 'Could not connect to the server.', 'error');
+                }
             }
         });
     };
@@ -319,8 +349,8 @@ export const MyProfile = () => {
 
             if (profilePhoto) profileFormData.append('profile_photo', profilePhoto);
             if (coverPhoto) profileFormData.append('cover_photo', coverPhoto);
-            if (profilePhotoRemoved) profileFormData.append('profile_photo_removed', 'true');
-            if (coverPhotoRemoved) profileFormData.append('cover_photo_removed', 'true');
+            // if (profilePhotoRemoved) profileFormData.append('profile_photo_removed', 'true');
+            // if (coverPhotoRemoved) profileFormData.append('cover_photo_removed', 'true');
 
             const profileUpdateResponse = await fetch(`${API_BASE_URL}/api/profile/${user.id}`, {
                 method: 'PUT',
@@ -346,13 +376,13 @@ export const MyProfile = () => {
 
             // Update photo previews based on backend response
             if (profileUpdateResult.profile && profileUpdateResult.profile.profile_photo_filepath) {
-                setProfilePhotoPreview(`${API_BASE_URL}/${profileUpdateResult.profile.profile_photo_filepath}`);
+                setProfilePhotoPreview(`${API_BASE_URL}/eRepo/${profileUpdateResult.profile.profile_photo_filepath}`);
             } else if (profilePhotoRemoved) {
                 setProfilePhotoPreview(defaultProfilePhoto);
             }
 
             if (profileUpdateResult.profile && profileUpdateResult.profile.cover_photo_filepath) {
-                setCoverPhotoPreview(`${API_BASE_URL}/${profileUpdateResult.profile.cover_photo_filepath}`);
+                setCoverPhotoPreview(`${API_BASE_URL}/eRepo/${profileUpdateResult.profile.cover_photo_filepath}`);
             } else if (coverPhotoRemoved) {
                 setCoverPhotoPreview(defaultCoverPhoto);
             }
@@ -400,7 +430,7 @@ export const MyProfile = () => {
                 {successMessage && <Alert variant="success">{successMessage}</Alert>}
 
                 {/* Cover Photo Section */}
-                <div className="position-relative w-100 bg-light rounded overflow-hidden border border-secondary d-flex align-items-center justify-content-center mb-4" style={{ height: '180px' }}>
+                {/* <div className="position-relative w-100 bg-light rounded overflow-hidden border border-secondary d-flex align-items-center justify-content-center mb-4" style={{ height: '180px' }}>
                     <Image src={coverPhotoPreview} alt="Cover Photo" className="h-100 w-100" style={{ objectFit: 'cover' }} />
                     <div className="position-absolute" style={{ top: '10px', right: '10px' }}>
                         <Form.Label htmlFor="coverPhotoUpload" className="btn btn-sm btn-light rounded-2 shadow-sm me-2" style={{ padding: '0.5rem' }}>
@@ -420,10 +450,25 @@ export const MyProfile = () => {
                             </Button>
                         )}
                     </div>
+                </div> */}
+
+                <div className="position-relative w-100 bg-light rounded overflow-hidden border border-secondary d-flex align-items-center justify-content-center mb-4" style={{ height: '180px' }}>
+                    <Image src={coverPhotoPreview} alt="Cover Photo" className="h-100 w-100" style={{ objectFit: 'cover' }} crossOrigin="anonymous" />
+                    <div className="position-absolute" style={{ top: '10px', right: '10px' }}>
+                        <Form.Label htmlFor="coverPhotoUpload" className="btn btn-sm btn-light rounded-2 shadow-sm me-2" style={{ padding: '0.5rem' }}>
+                            <FontAwesomeIcon icon={faPencilAlt} /> Change Cover
+                        </Form.Label>
+                        <Form.Control type="file" id="coverPhotoUpload" name="cover_photo" onChange={(e) => handleFileChange(e, 'cover')} className="d-none" accept="image/jpeg,image/jpg,image/png" />
+                        {coverPhotoPreview !== defaultCoverPhoto && (
+                            <Button variant="danger" size="sm" className="rounded-2 shadow-sm" onClick={() => handleRemovePhoto('cover')} disabled={isDeleting}>
+                                {isDeleting && (type === 'cover') ? <Spinner animation="border" size="sm" /> : <FontAwesomeIcon icon={faTimes} />} Remove
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 {/* Profile Picture Section */}
-                <div className="position-absolute start-50 translate-middle  border bg-light d-flex align-items-center justify-content-center " style={{ width: '120px', height: '120px', top: '230px', zIndex: 10 }}>
+                {/* <div className="position-absolute start-50 translate-middle  border bg-light d-flex align-items-center justify-content-center " style={{ width: '120px', height: '120px', top: '230px', zIndex: 10 }}>
                     <Image src={profilePhotoPreview} alt="Profile Photo" className="h-100 w-100 " style={{ objectFit: 'cover' }} />
                     <div className="position-absolute" style={{ bottom: '0', right: '0' }}>
                         <Form.Label htmlFor="profilePhotoUpload" className="btn btn-sm btn-light rounded-circle p-2 shadow-sm">
@@ -443,7 +488,24 @@ export const MyProfile = () => {
                             <FontAwesomeIcon icon={faTimes} />
                         </Button>
                     )}
+                </div> */}
+
+                {/* Profile Picture Section */}
+                <div className="position-absolute start-50 translate-middle rounded-circle border bg-light d-flex align-items-center justify-content-center shadow" style={{ width: '120px', height: '120px', top: '230px', zIndex: 10 }}>
+                    <Image src={profilePhotoPreview} alt="Profile Photo" className="h-100 w-100 rounded-circle" style={{ objectFit: 'cover' }} crossOrigin="anonymous" />
+                    <div className="position-absolute" style={{ bottom: '0', right: '0' }}>
+                        <Form.Label htmlFor="profilePhotoUpload" className="btn btn-sm btn-light rounded-circle p-2 shadow-sm">
+                            <FontAwesomeIcon icon={faCamera} />
+                        </Form.Label>
+                        <Form.Control type="file" id="profilePhotoUpload" name="profile_photo" onChange={(e) => handleFileChange(e, 'profile')} className="d-none" accept="image/jpeg,image/jpg,image/png" />
+                    </div>
+                    {profilePhotoPreview !== defaultProfilePhoto && (
+                        <Button variant="danger" size="sm" className="position-absolute rounded-circle shadow-sm" style={{ bottom: '0', left: '100%', transform: 'translateX(-50%)' }} onClick={() => handleRemovePhoto('profile')} disabled={isDeleting}>
+                            {isDeleting && (type === 'profile') ? <Spinner animation="border" size="sm" /> : <FontAwesomeIcon icon={faTimes} />}
+                        </Button>
+                    )}
                 </div>
+
 
                 <Form onSubmit={handleSubmit} className="mt-5 pt-5">
                     {/* Name and Email */}
